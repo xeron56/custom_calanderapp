@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:intl/intl.dart';
 import '../models/event.dart';
 
 class CalendarController extends GetxController {
@@ -32,9 +32,7 @@ class CalendarController extends GetxController {
 
   void onDayTapped(DateTime date) {
     _selectedDate.value = date;
-    if (!_isAddingEvent.value) {
-      _showAddEventDialog(context: Get.context!, selectedDate: date);
-    }
+    showEventDialog(Get.context!, date);
   }
 
   Stream<List<CalendarEvent>> _getEventStream() {
@@ -87,11 +85,89 @@ class CalendarController extends GetxController {
     }
   }
 
+  void showEventDialog(BuildContext context, DateTime selectedDate) {
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.5,
+        padding: const EdgeInsets.all(16.0),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16.0),
+            topRight: Radius.circular(16.0),
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              DateFormat.yMMMMd().format(selectedDate),
+              style: const TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            Expanded(
+              child: Obx(
+                () => ListView.builder(
+                  itemCount: getEventsForDay(selectedDate).length,
+                  itemBuilder: (context, index) {
+                    final event = getEventsForDay(selectedDate)[index];
+                    return Dismissible(
+                      key: Key(event.id),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) {
+                        deleteEvent(event.id);
+
+                        Get.snackbar(
+                          'Event Deleted',
+                          '${event.eventName} deleted',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20.0),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: event.eventBackgroundColor,
+                        ),
+                        title: Text(event.eventName),
+                        onTap: () {
+                          // Handle tapping on the event tile, e.g., open an edit dialog
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: () {
+                _showAddEventDialog(context: context, selectedDate: selectedDate);
+              },
+              child: const Text("Add Event"),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  // Modified _showAddEventDialog
   void _showAddEventDialog(
       {required BuildContext context, required DateTime selectedDate}) {
     final _formKey = GlobalKey<FormState>();
     String _eventName = '';
-    Color _eventColor = Colors.blue; // Default event color
+    Color _eventColor = Colors.blue;
 
     Get.dialog(
       AlertDialog(
@@ -145,7 +221,7 @@ class CalendarController extends GetxController {
               if (_formKey.currentState!.validate()) {
                 _formKey.currentState!.save();
                 addEvent(CalendarEvent(
-                  id: '', // Firestore will auto-generate
+                  id: '',
                   eventName: _eventName,
                   eventDate: selectedDate,
                   eventBackgroundColor: _eventColor,

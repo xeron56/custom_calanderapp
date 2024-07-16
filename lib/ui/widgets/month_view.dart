@@ -7,6 +7,7 @@ import 'day_cell.dart';
 
 class MonthView extends StatefulWidget {
   final DateTime selectedDate;
+
   final ValueChanged<DateTime> onDayTapped;
 
   const MonthView(
@@ -54,8 +55,7 @@ class _MonthViewState extends State<MonthView> {
   }
 
   Widget _buildMonthYearHeader() {
-    final displayedDate =
-        DateTime(widget.selectedDate.year, _currentPage + 1);
+    final displayedDate = DateTime(widget.selectedDate.year, _currentPage + 1);
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -121,10 +121,15 @@ class _MonthViewState extends State<MonthView> {
 
         return DayCell(
           date: date,
+
           events: calendarController.getEventsForDay(date),
           isSelected: isSameDay(date, widget.selectedDate),
           isToday: isToday,
-          onTap: widget.onDayTapped,
+          //onTap: widget.onDayTapped,
+          onTap: (tappedDate) {
+            widget.onDayTapped(tappedDate); // Update the selected date
+            Get.find<CalendarController>().showEventDialog(context, tappedDate);
+          },
         );
       },
     );
