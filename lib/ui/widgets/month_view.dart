@@ -1,20 +1,17 @@
-import 'package:custom_calanderapp/ui/widgets/day_cell.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/event.dart'; // Make sure this import is correct
+import '../../controllers/calendar_controller.dart';
+import 'day_cell.dart';
 
 class MonthView extends StatefulWidget {
   final DateTime selectedDate;
-  final List<CalendarEvent> events;
   final ValueChanged<DateTime> onDayTapped;
 
-  const MonthView({
-    Key? key,
-    required this.selectedDate,
-    required this.events,
-    required this.onDayTapped,
-  }) : super(key: key);
+  const MonthView(
+      {Key? key, required this.selectedDate, required this.onDayTapped})
+      : super(key: key);
 
   @override
   State<MonthView> createState() => _MonthViewState();
@@ -22,12 +19,13 @@ class MonthView extends StatefulWidget {
 
 class _MonthViewState extends State<MonthView> {
   final PageController _pageController = PageController(
-    initialPage: DateTime.now().month - 1, // Start with the current month
+    initialPage: DateTime.now().month - 1,
   );
+  int _currentPage = DateTime.now().month - 1;
 
   @override
   void dispose() {
-    _pageController.dispose(); 
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -40,14 +38,14 @@ class _MonthViewState extends State<MonthView> {
           child: PageView.builder(
             controller: _pageController,
             itemCount: 12, // 12 months
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
             itemBuilder: (context, index) {
               final month = index + 1;
               return _buildCalendarGrid(month);
-            },
-            onPageChanged: (index) {
-              // You can update the selected date in the controller here if needed
-              // But since the user usually selects a specific day, it's probably
-              // not necessary to track month changes here.
             },
           ),
         ),
@@ -56,14 +54,37 @@ class _MonthViewState extends State<MonthView> {
   }
 
   Widget _buildMonthYearHeader() {
+    final displayedDate =
+        DateTime(widget.selectedDate.year, _currentPage + 1);
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Text(
-        DateFormat.yMMMM().format(widget.selectedDate),
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () {
+              _pageController.previousPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.ease);
+            },
+          ),
+          Text(
+            DateFormat.yMMMM().format(displayedDate),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios),
+            onPressed: () {
+              _pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.ease);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -77,18 +98,30 @@ class _MonthViewState extends State<MonthView> {
     return GridView.builder(
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
-      itemCount: daysInMonth + (firstWeekday - 1), // Add days for padding
+      itemCount: daysInMonth + (firstWeekday - 1),
       itemBuilder: (context, index) {
         if (index < firstWeekday - 1) {
-          return const SizedBox.shrink(); // Padding for the first week
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+            ),
+            child: Center(
+              child: Text(
+                DateFormat('EEE').format(DateTime(
+                    widget.selectedDate.year, month, index - firstWeekday + 2)),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          );
         }
         final int day = index - (firstWeekday - 2);
         final DateTime date = DateTime(widget.selectedDate.year, month, day);
         final bool isToday = isSameDay(date, DateTime.now());
+        final calendarController = Get.find<CalendarController>();
 
         return DayCell(
           date: date,
-          events: widget.events.where((event) => isSameDay(event.eventDate, date)).toList(),
+          events: calendarController.getEventsForDay(date),
           isSelected: isSameDay(date, widget.selectedDate),
           isToday: isToday,
           onTap: widget.onDayTapped,

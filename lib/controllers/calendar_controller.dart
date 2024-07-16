@@ -5,47 +5,59 @@ import 'package:get/get.dart';
 import '../models/event.dart';
 
 class CalendarController extends GetxController {
-  final _selectedDate = DateTime.now().obs; 
-  final _events = <CalendarEvent>[].obs;
-  final _isAddingEvent = false.obs; // To track if the add event dialog is open
+  final _selectedDate = DateTime.now().obs;
+  final RxList<CalendarEvent> _events = <CalendarEvent>[].obs;
+  final _isAddingEvent = false.obs;
 
   DateTime get selectedDate => _selectedDate.value;
-  List<CalendarEvent> get events => _events;
-  bool get isAddingEvent => _isAddingEvent.value; 
+
+  List<CalendarEvent> getEventsForDay(DateTime date) {
+    return _events.where((event) => isSameDay(event.eventDate, date)).toList();
+  }
+
+  bool get isAddingEvent => _isAddingEvent.value;
 
   @override
   void onInit() {
     super.onInit();
-    fetchEvents();
+    _listenToEvents();
+  }
+
+  // Function to check if two dates are the same day
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   void onDayTapped(DateTime date) {
     _selectedDate.value = date;
-    if (!_isAddingEvent.value) { 
-       _showAddEventDialog(context: Get.context!, selectedDate: date);
+    if (!_isAddingEvent.value) {
+      _showAddEventDialog(context: Get.context!, selectedDate: date);
     }
   }
 
-  Future<void> fetchEvents() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('events') 
-          .get();
-      _events.assignAll(snapshot.docs.map((doc) =>
-          CalendarEvent.fromMap(doc.id, doc.data())).toList());
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load events');
-      print("Error fetching events: $e"); 
-    }
+  Stream<List<CalendarEvent>> _getEventStream() {
+    return FirebaseFirestore.instance
+        .collection('events')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              return CalendarEvent.fromMap(doc.id, doc.data());
+            }).toList());
+  }
+
+  void _listenToEvents() {
+    _getEventStream().listen((eventData) {
+      _events.value = eventData;
+    });
   }
 
   Future<void> addEvent(CalendarEvent event) async {
     try {
       await FirebaseFirestore.instance.collection('events').add(event.toMap());
-      _events.add(event); 
       Get.back(); // Close the dialog
     } catch (e) {
-      Get.snackbar('Error', 'Failed to add event');
+      Get.snackbar('Error', 'Failed to add event: $e');
       print("Error adding event: $e");
     }
   }
@@ -54,14 +66,8 @@ class CalendarController extends GetxController {
     try {
       await FirebaseFirestore.instance
           .collection('events')
-          .doc(event.id) 
+          .doc(event.id)
           .update(event.toMap());
-
-      final index = _events.indexWhere((e) => e.id == event.id);
-      if (index != -1) {
-        _events[index] = event;
-      }
-
       Get.back();
     } catch (e) {
       Get.snackbar('Error', 'Failed to update event');
@@ -75,16 +81,14 @@ class CalendarController extends GetxController {
           .collection('events')
           .doc(eventId)
           .delete();
-
-      _events.removeWhere((e) => e.id == eventId);
     } catch (e) {
       Get.snackbar('Error', 'Failed to delete event');
       print("Error deleting event: $e");
     }
   }
-  
-  // Shows a dialog to add events
-  void _showAddEventDialog({required BuildContext context, required DateTime selectedDate}) {
+
+  void _showAddEventDialog(
+      {required BuildContext context, required DateTime selectedDate}) {
     final _formKey = GlobalKey<FormState>();
     String _eventName = '';
     Color _eventColor = Colors.blue; // Default event color
@@ -108,8 +112,6 @@ class CalendarController extends GetxController {
                 onSaved: (value) => _eventName = value!,
               ),
               const SizedBox(height: 16),
-              // Color Picker (You'll need to implement this or use a package)
-              // Example using a DropdownButton:
               DropdownButtonFormField<Color>(
                 value: _eventColor,
                 decoration: const InputDecoration(labelText: 'Event Color'),
@@ -126,7 +128,6 @@ class CalendarController extends GetxController {
                 ],
                 onChanged: (color) => _eventColor = color!,
               ),
-              // ... (Add more fields for event details as needed) ...
             ],
           ),
         ),
@@ -135,7 +136,7 @@ class CalendarController extends GetxController {
             child: const Text('Cancel'),
             onPressed: () {
               Get.back();
-              _isAddingEvent.value = false; // Dialog closed
+              _isAddingEvent.value = false;
             },
           ),
           TextButton(
@@ -144,19 +145,18 @@ class CalendarController extends GetxController {
               if (_formKey.currentState!.validate()) {
                 _formKey.currentState!.save();
                 addEvent(CalendarEvent(
-                  id: '', // ID will be generated by Firestore
+                  id: '', // Firestore will auto-generate
                   eventName: _eventName,
-                  eventDate: selectedDate, 
+                  eventDate: selectedDate,
                   eventBackgroundColor: _eventColor,
                 ));
-                _isAddingEvent.value = false; // Dialog closed
+                _isAddingEvent.value = false;
               }
             },
-          )
+          ),
         ],
       ),
-    ).then((_) => _isAddingEvent.value = false); // Dialog closed
-    _isAddingEvent.value = true; // Dialog opened 
+    ).then((_) => _isAddingEvent.value = false);
+    _isAddingEvent.value = true;
   }
-  
 }

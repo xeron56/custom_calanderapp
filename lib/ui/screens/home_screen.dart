@@ -1,3 +1,4 @@
+// ui/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,13 +14,12 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Cell Calendar App'),
       ),
-      body: GetBuilder<CalendarController>( // Rebuild when controller changes
-        init: Get.find<CalendarController>(), 
+      body: GetBuilder<CalendarController>(
+        init: Get.find<CalendarController>(),
         builder: (controller) {
           return MonthView(
             selectedDate: controller.selectedDate, 
-            events: controller.events, 
-            onDayTapped: controller.onDayTapped,
+            onDayTapped: controller.onDayTapped, // Removed the 'events' parameter
           );
         },
       ),
