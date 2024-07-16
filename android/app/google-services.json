@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "567531068468",
+    "project_id": "calendardb-2cf0c",
+    "storage_bucket": "calendardb-2cf0c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:567531068468:android:99bc01ff0ded8d1b247e61",
+        "android_client_info": {
+          "package_name": "com.sususoft.calanderapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2i8hbsgqFNxF7s4peqjGOZr7FCwVFYfY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
