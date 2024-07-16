@@ -89,7 +89,7 @@ class _MonthViewState extends State<MonthView> {
     );
   }
 
-  Widget _buildCalendarGrid(int month) {
+   Widget _buildCalendarGrid(int month) {
     final DateTime firstDayOfMonth =
         DateTime(widget.selectedDate.year, month, 1);
     final int daysInMonth = DateTime(firstDayOfMonth.year, month + 1, 0).day;
@@ -101,18 +101,12 @@ class _MonthViewState extends State<MonthView> {
       itemCount: daysInMonth + (firstWeekday - 1),
       itemBuilder: (context, index) {
         if (index < firstWeekday - 1) {
+          // Return an empty container for padding
           return Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
             ),
-            child: Center(
-              child: Text(
-                DateFormat('EEE').format(DateTime(
-                    widget.selectedDate.year, month, index - firstWeekday + 2)),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          );
+          ); 
         }
         final int day = index - (firstWeekday - 2);
         final DateTime date = DateTime(widget.selectedDate.year, month, day);
@@ -121,13 +115,11 @@ class _MonthViewState extends State<MonthView> {
 
         return DayCell(
           date: date,
-
           events: calendarController.getEventsForDay(date),
           isSelected: isSameDay(date, widget.selectedDate),
           isToday: isToday,
-          //onTap: widget.onDayTapped,
           onTap: (tappedDate) {
-            widget.onDayTapped(tappedDate); // Update the selected date
+            widget.onDayTapped(tappedDate); 
             Get.find<CalendarController>().showEventDialog(context, tappedDate);
           },
         );
